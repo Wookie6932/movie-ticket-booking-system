@@ -47,6 +47,19 @@ public class AuthenticationService {
         return "Failed to create account. Potetnially using existing username or email";
     }
 
+    public User login(String username, String password) {
+ 
+        if (username == null || username.isBlank()
+                || password == null || password.isBlank()) {
+ 
+            return null;
+        }
+ 
+        String passwordHash = hashPassword(password);
+ 
+        return userDAO.findUser(username, passwordHash);
+    }
+
     private String hashPassword(String password) {
         try {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
