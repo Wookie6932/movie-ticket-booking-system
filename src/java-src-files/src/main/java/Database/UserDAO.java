@@ -32,4 +32,38 @@ public class UserDAO {
             return false;
         }
     }
+
+    public User findUser(String username, String passwordHash) {
+ 
+        String sql = """
+                SELECT user_id, username, email, password_hash, role
+                FROM user
+                WHERE username = ? AND password_hash = ?
+                """;
+ 
+        try (Connection connection = DatabaseConnection.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+ 
+            statement.setString(1, username);
+            statement.setString(2, passwordHash);
+ 
+            ResultSet resultSet = statement.executeQuery();
+ 
+            if (resultSet.next()) {
+                return new User(
+                        resultSet.getInt("user_id"),
+                        resultSet.getString("username"),
+                        resultSet.getString("email"),
+                        resultSet.getString("password_hash"),
+                        resultSet.getString("role")
+                );
+            }
+ 
+            return null;
+ 
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
 }
