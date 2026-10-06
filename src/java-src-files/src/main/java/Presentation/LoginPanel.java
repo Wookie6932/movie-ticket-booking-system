@@ -6,6 +6,7 @@ import Authentication.AuthenticationService;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
+import java.sql.SQLException;
 
 public class LoginPanel extends JPanel {
     private final MainFrame mainFrame;
@@ -14,6 +15,7 @@ public class LoginPanel extends JPanel {
     private JTextField usernameField;
     private JPasswordField passwordField;
     private JLabel errorLabel;
+    private JButton loginButton;
  
     public LoginPanel(MainFrame mainFrame) {
         this.mainFrame = mainFrame;
@@ -70,7 +72,7 @@ public class LoginPanel extends JPanel {
  
         gbc.gridx = 0; gbc.gridy = 6; gbc.gridwidth = 2;
         gbc.insets = new Insets(6, 8, 10, 8);
-        JButton loginButton = new JButton("Login");
+        loginButton = new JButton("Login");
         loginButton.setPreferredSize(new Dimension(260, 32));
         loginButton.setFont(new Font("Arial", Font.PLAIN, 13));
         loginButton.addActionListener(e -> attemptLogin());
@@ -101,20 +103,38 @@ public class LoginPanel extends JPanel {
     }
  
     private void attemptLogin() {
- 
         String username = usernameField.getText().trim();
         String password = new String(passwordField.getPassword());
  
-        User user = authenticationService.login(username, password);
+        loginButton.setEnabled(false);
+        errorLabel.setText("");
  
-        if (user != null) {
-            usernameField.setText("");
-            passwordField.setText("");
-            errorLabel.setText("");
-            mainFrame.showDashboard(user);
-        } else {
-            errorLabel.setText("Invalid username or password.");
-            passwordField.setText("");
-        }
+        new SwingWorker<User, Void>() {
+            @Override
+            protected User doInBackground() throws SQLException {
+                return authenticationService.login(username, password);
+            }
+ 
+            @Override
+            protected void done() {
+                try {
+                    User user = get();
+ 
+                    if (user != null) {
+                        usernameField.setText("");
+                        passwordField.setText("");
+                        mainFrame.showDashboard(user);
+                    } else {
+                        errorLabel.setText("Invalid username or password.");
+                        passwordField.setText("");
+                    }
+ 
+                } catch (Exception e) {
+                    errorLabel.setText("A database error occurred. Please try again.");
+                } finally {
+                    loginButton.setEnabled(true);
+                }
+            }
+        }.execute();
     }
 }

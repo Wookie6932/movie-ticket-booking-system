@@ -1,6 +1,7 @@
 package Presentation;
  
 import Authentication.AuthenticationService;
+import Authentication.Result;
  
 import javax.swing.*;
 import java.awt.*;
@@ -15,6 +16,7 @@ public class CreateAccountPanel extends JPanel {
     private JPasswordField passwordField;
     private JPasswordField confirmPasswordField;
     private JLabel errorLabel;
+    private JButton createButton;
  
     public CreateAccountPanel(MainFrame mainFrame) {
         this.mainFrame = mainFrame;
@@ -95,7 +97,7 @@ public class CreateAccountPanel extends JPanel {
  
         gbc.gridx = 0; gbc.gridy = 10; gbc.gridwidth = 2;
         gbc.insets = new Insets(6, 8, 10, 8);
-        JButton createButton = new JButton("Create Account");
+        createButton = new JButton("Create Account");
         createButton.setPreferredSize(new Dimension(260, 32));
         createButton.setFont(new Font("Arial", Font.PLAIN, 13));
         createButton.addActionListener(e -> attemptCreateAccount());
@@ -132,21 +134,46 @@ public class CreateAccountPanel extends JPanel {
         String password        = new String(passwordField.getPassword());
         String confirmPassword = new String(confirmPasswordField.getPassword());
  
-        String result = authenticationService.createAccount(
-                username,
-                email,
-                password,
-                confirmPassword
-        );
+        createButton.setEnabled(false);
+        errorLabel.setText("");
  
-        if (result.equals("Account created successfully")) {
-            clearFields();
-            mainFrame.showLogin();
-        } else {
-            errorLabel.setText(result);
-            passwordField.setText("");
-            confirmPasswordField.setText("");
-        }
+        new SwingWorker<Result, Void>() {
+ 
+            @Override
+            protected Result doInBackground() {
+                return authenticationService.createAccount(
+                        username, email, password, confirmPassword);
+            }
+ 
+            @Override
+            protected void done() {
+                try {
+                    Result result = get();
+ 
+                    if (result.isSuccess()) {
+                        clearFields();
+                        
+                        JOptionPane.showMessageDialog(
+                                CreateAccountPanel.this,
+                                result.getMessage(),
+                                "Account Created",
+                                JOptionPane.INFORMATION_MESSAGE
+                        );
+                        mainFrame.showLogin();
+                    } else {
+                        errorLabel.setText(result.getMessage());
+                        passwordField.setText("");
+                        confirmPasswordField.setText("");
+                    }
+ 
+                } catch (Exception e) {
+                    errorLabel.setText("A database error occurred. Please try again.");
+                } finally {
+                    createButton.setEnabled(true);
+                }
+            }
+ 
+        }.execute();
     }
  
     private void clearFields() {

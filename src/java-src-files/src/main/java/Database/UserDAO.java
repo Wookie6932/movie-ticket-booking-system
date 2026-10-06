@@ -9,7 +9,9 @@ import Account.User;
 
 public class UserDAO {
 
-    public boolean createUser(User user) {
+    private static final int MYSQL_DUPLICATE_ENTRY = 1062;
+
+    public void createUser(User user) throws DuplicateException, SQLException {
 
         String sql = """
                 INSERT INTO user (username, email, password_hash, role)
@@ -24,17 +26,18 @@ public class UserDAO {
             statement.setString(3, user.getPasswordHash());
             statement.setString(4, user.getRole());
 
-            int rowsAffected = statement.executeUpdate();
-
-            return rowsAffected == 1;
-
+            statement.executeUpdate();
+            
         } catch (SQLException e) {
-            e.printStackTrace();
-            return false;
+            if (e.getErrorCode() == MYSQL_DUPLICATE_ENTRY) {
+                throw new DuplicateException(
+                        "An account with that username or email already exists.");
+            }
+            throw e;
         }
     }
 
-    public User findUser(String username, String passwordHash) {
+    public User findUser(String username) throws SQLException {
  
         String sql = """
                 SELECT user_id, username, email, password_hash, role
@@ -46,7 +49,6 @@ public class UserDAO {
              PreparedStatement statement = connection.prepareStatement(sql)) {
  
             statement.setString(1, username);
-            statement.setString(2, passwordHash);
  
             ResultSet resultSet = statement.executeQuery();
  
@@ -60,10 +62,6 @@ public class UserDAO {
                 );
             }
  
-            return null;
- 
-        } catch (SQLException e) {
-            e.printStackTrace();
             return null;
         }
     }

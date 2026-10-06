@@ -1,10 +1,11 @@
 package Authentication;
 
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
+import java.sql.SQLException;
+
+import org.mindrot.jbcrypt.BCrypt;
 
 import Account.User;
+import Database.DuplicateException;
 import Database.UserDAO;
 
 public class AuthenticationService {
@@ -15,7 +16,7 @@ public class AuthenticationService {
         this.userDAO = new UserDAO();
     }
 
-    public String createAccount(String username, String email,
+        public Result createAccount(String username, String email,
                                 String password, String confirmPassword) {
 
         if (username == null || username.isBlank()
@@ -23,61 +24,60 @@ public class AuthenticationService {
                 || password == null || password.isBlank()
                 || confirmPassword == null || confirmPassword.isBlank()) {
 
-            return "All fields are required";
+            return new Result(Result.Status.VALIDATION_ERROR,
+                    "All fields are required.");
+        }
+        
+        if (!isValidEmail(email)) {
+            return new Result(Result.Status.VALIDATION_ERROR,
+                    "Please enter a valid email address.");
         }
 
         if (!password.equals(confirmPassword)) {
-            return "Passwords don't match.";
+            return new Result(Result.Status.VALIDATION_ERROR,
+                    "Passwords do not match.");
         }
 
-        String passwordHash = hashPassword(password);
-
-        User user = new User(
-                username,
-                email,
-                passwordHash,
-                "CUSTOMER"
-        );
-
-        boolean success = userDAO.createUser(user);
-
-        if (success) {
-            return "Account created successfully";
+        String passwordHash = BCrypt.hashpw(password, BCrypt.gensalt());
+ 
+        User user = new User(username, email, passwordHash, "CUSTOMER");
+ 
+        try {
+            userDAO.createUser(user);
+            return new Result(Result.Status.SUCCESS,
+                    "Account created successfully. Please log in.");
+ 
+        } catch (DuplicateException e) {
+            return new Result(Result.Status.DUPLICATE_ERROR,
+                    "An account with that username or email already exists.");
+ 
+        } catch (SQLException e) {
+            return new Result(Result.Status.DATABASE_ERROR,
+                    "A database error occurred. Please try again later.");
         }
-        return "Failed to create account. Potetnially using existing username or email";
     }
 
-    public User login(String username, String password) {
+    public User login(String username, String password) throws SQLException {
  
         if (username == null || username.isBlank()
                 || password == null || password.isBlank()) {
- 
             return null;
         }
  
-        String passwordHash = hashPassword(password);
+        User user = userDAO.findUser(username);
  
-        return userDAO.findUser(username, passwordHash);
-    }
-
-    private String hashPassword(String password) {
-        try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-
-            byte[] hash = digest.digest(
-                    password.getBytes(StandardCharsets.UTF_8)
-            );
-
-            StringBuilder hexString = new StringBuilder();
-
-            for (byte b : hash) {
-                hexString.append(String.format("%02x", b));
-            }
-
-            return hexString.toString();
-
-        } catch (NoSuchAlgorithmException e) {
-            throw new RuntimeException("Unable to hash password", e);
+        if (user == null) {
+            return null;
         }
+ 
+        if (BCrypt.checkpw(password, user.getPasswordHash())) {
+            return user;
+        }
+ 
+        return null;
+    }
+ 
+    private boolean isValidEmail(String email) {
+        return email.contains("@") && email.contains(".");
     }
 }
