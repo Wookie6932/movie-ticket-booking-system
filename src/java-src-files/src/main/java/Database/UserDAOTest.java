@@ -14,12 +14,14 @@ public class UserDAOTest {
         );
 
         UserDAO userDAO = new UserDAO();
-        boolean success = userDAO.createUser(testUser);
-
-        if (success) {
+        try {
+            userDAO.createUser(testUser);
             System.out.println("User created successfully");
-        } else {
+        } catch (DuplicateException e) {
+            System.out.println("Duplicate user: " + e.getMessage());
+        } catch (Exception e) {
             System.out.println("User creation failed");
+            e.printStackTrace();
         }
     }
 }

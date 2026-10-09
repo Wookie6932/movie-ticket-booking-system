@@ -27,7 +27,7 @@ public class UserDAO {
             statement.setString(4, user.getRole());
 
             statement.executeUpdate();
-            
+
         } catch (SQLException e) {
             if (e.getErrorCode() == MYSQL_DUPLICATE_ENTRY) {
                 throw new DuplicateException(
@@ -38,20 +38,20 @@ public class UserDAO {
     }
 
     public User findUser(String username) throws SQLException {
- 
+
         String sql = """
                 SELECT user_id, username, email, password_hash, role
                 FROM user
-                WHERE username = ? AND password_hash = ?
+                WHERE username = ?
                 """;
- 
+
         try (Connection connection = DatabaseConnection.getConnection();
              PreparedStatement statement = connection.prepareStatement(sql)) {
- 
+
             statement.setString(1, username);
- 
+
             ResultSet resultSet = statement.executeQuery();
- 
+
             if (resultSet.next()) {
                 return new User(
                         resultSet.getInt("user_id"),
@@ -61,7 +61,7 @@ public class UserDAO {
                         resultSet.getString("role")
                 );
             }
- 
+
             return null;
         }
     }

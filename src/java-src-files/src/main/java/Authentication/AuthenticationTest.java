@@ -7,13 +7,13 @@ public class AuthenticationTest {
         AuthenticationService authService =
                 new AuthenticationService();
 
-        String result = authService.createAccount(
+        Result result = authService.createAccount(
                 "testuser",
                 "test@gmail.com",
                 "superstrongpassword",
                 "superstrongpassword"
         );
 
-        System.out.println(result);
+        System.out.println(result.getMessage());
     }
 }
