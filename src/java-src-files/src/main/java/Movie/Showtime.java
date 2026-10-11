@@ -9,14 +9,16 @@ public class Showtime {
     private int auditoriumId;
     private LocalDateTime startTime;
     private String status;
+    private String movieTitle;
 
     public Showtime(int showtimeId, int movieId, int auditoriumId,
-                    LocalDateTime startTime, String status) {
+                    LocalDateTime startTime, String status, String movieTitle) {
         this.showtimeId = showtimeId;
         this.movieId = movieId;
         this.auditoriumId = auditoriumId;
         this.startTime = startTime;
         this.status = status;
+        this.movieTitle = movieTitle;
     }
 
     public int getShowtimeId() {
@@ -37,5 +39,9 @@ public class Showtime {
 
     public String getStatus() {
         return status;
+    }
+    
+    public String getMovieTitle() {
+        return movieTitle;
     }
 }
