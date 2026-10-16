@@ -20,18 +20,18 @@ import javax.swing.JTextArea;
 import javax.swing.ListSelectionModel;
 
 import Account.User;
-import Database.MovieDAO;
-import Database.ShowtimeDAO;
 import Movie.Movie;
+import Movie.MovieService;
 import Movie.Showtime;
+import Movie.ShowtimeService;
 
 public class CustomerDashboard extends JPanel {
 
     private final MainFrame mainFrame;
     private final User currentUser;
 
-    private final MovieDAO movieDAO = new MovieDAO();
-    private final ShowtimeDAO showtimeDAO = new ShowtimeDAO();
+    private final MovieService movieService = new MovieService();
+    private final ShowtimeService showtimeService = new ShowtimeService();
 
     private final DefaultListModel<Movie> movieListModel = new DefaultListModel<>();
     private final JList<Movie> movieList = new JList<>(movieListModel);
@@ -112,7 +112,7 @@ public class CustomerDashboard extends JPanel {
 
     private void loadMovies() {
         try {
-            List<Movie> movies = movieDAO.getAllMovies();
+            List<Movie> movies = movieService.getAllMovies();
 
             movieListModel.clear();
 
@@ -133,7 +133,7 @@ public class CustomerDashboard extends JPanel {
     private void loadMovieDetails(Movie movie) {
         try {
             List<Showtime> showtimes =
-                    showtimeDAO.getShowtimesByMovie(movie.getMovieId());
+                    showtimeService.getShowtimesByMovie(movie.getMovieId());
 
             StringBuilder details = new StringBuilder();
 

@@ -4,7 +4,6 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -39,6 +38,35 @@ public class MovieDAO {
 
         return movies;
     }
+
+    public Movie getMovieById(int movieId) throws SQLException {
+
+    String sql = """
+            SELECT movie_id, title, description, duration_minutes, rating
+            FROM movie
+            WHERE movie_id = ?
+            """;
+
+    try (Connection connection = DatabaseConnection.getConnection();
+         PreparedStatement statement = connection.prepareStatement(sql)) {
+
+        statement.setInt(1, movieId);
+
+        try (ResultSet resultSet = statement.executeQuery()) {
+            if (resultSet.next()) {
+                return new Movie(
+                        resultSet.getInt("movie_id"),
+                        resultSet.getString("title"),
+                        resultSet.getString("description"),
+                        resultSet.getInt("duration_minutes"),
+                        resultSet.getString("rating")
+                );
+            }
+        }
+    }
+
+    return null;
+}
 
     public void addMovie(Movie movie) throws SQLException {
 

@@ -1,16 +1,29 @@
 package Presentation;
  
+import java.awt.BorderLayout;
+import java.awt.CardLayout;
+import java.awt.Color;
+import java.awt.Dimension;
+import java.awt.FlowLayout;
+import java.awt.Font;
+import java.time.format.DateTimeFormatter;
+import java.util.List;
+
+import javax.swing.BorderFactory;
+import javax.swing.JButton;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JTable;
+import javax.swing.ListSelectionModel;
+import javax.swing.table.DefaultTableModel;
+
 import Account.User;
 import Movie.Movie;
 import Movie.MovieService;
 import Movie.Showtime;
 import Movie.ShowtimeService;
- 
-import javax.swing.*;
-import javax.swing.table.DefaultTableModel;
-import java.awt.*;
-import java.time.format.DateTimeFormatter;
-import java.util.List;
  
 public class AdminDashboard extends JPanel {
     private final MainFrame mainFrame;
@@ -324,11 +337,6 @@ public class AdminDashboard extends JPanel {
             return;
         }
  
-        if ("CANCELED".equals(selected.getStatus())) {
-            JOptionPane.showMessageDialog(this, "This showtime is already canceled.");
-            return;
-        }
- 
         int confirm = JOptionPane.showConfirmDialog(this,
                 "Cancel the showtime for \"" + selected.getMovieTitle()
                 + "\" on " + selected.getStartTime().format(FORMATTER) + "?",
@@ -339,8 +347,14 @@ public class AdminDashboard extends JPanel {
         try {
             showtimeService.cancelShowtime(selected.getShowtimeId());
             loadShowtimes();
+
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            JOptionPane.showMessageDialog(this, e.getMessage());
+
         } catch (Exception e) {
-            JOptionPane.showMessageDialog(this, "Error canceling showtime: " + e.getMessage());
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(
+                    this, "Unable to cancel showtime. Please try again.");
         }
     }
  
