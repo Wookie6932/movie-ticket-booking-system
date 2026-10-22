@@ -25,13 +25,10 @@ public class ShowtimeService {
         return showtimeDAO.getShowtimesByMovie(movieId);
     }
  
-    public void addShowtime(int movieId, int auditoriumId,
-                LocalDateTime startTime) throws SQLException {
- 
+    public void addShowtime(int movieId, int auditoriumId, LocalDateTime startTime) throws SQLException {
             validateShowtime(movieId, auditoriumId, startTime, -1);
 
-        Showtime showtime = new Showtime(
-                0, movieId, auditoriumId, startTime, "ACTIVE", null);
+        Showtime showtime = new Showtime(0, movieId, auditoriumId, startTime, "ACTIVE", null);
  
         showtimeDAO.addShowtime(showtime);
     }
@@ -48,17 +45,20 @@ public class ShowtimeService {
         if ("CANCELED".equals(existingShowtime.getStatus())) {
             throw new IllegalStateException("Canceled showtimes cannot be edited.");
         }
+        
+        if (existingShowtime.getAuditoriumId() != auditoriumId) {
+            throw new IllegalStateException("Auditorium cannot be changed after a showtime is created. " 
+                    + "Cancel the showtime and create a new one instead.");
+        }
 
         validateShowtime(movieId, auditoriumId, startTime, showtimeId);
 
-        Showtime showtime = new Showtime(
-                showtimeId, movieId, auditoriumId, startTime, "ACTIVE", null);
+        Showtime showtime = new Showtime(showtimeId, movieId, auditoriumId, startTime, "ACTIVE", null);
 
         showtimeDAO.updateShowtime(showtime);
     }
  
     public void cancelShowtime(int showtimeId) throws SQLException {
-
         Showtime showtime = showtimeDAO.getShowtimeById(showtimeId);
 
         if (showtime == null) {
@@ -72,9 +72,7 @@ public class ShowtimeService {
         showtimeDAO.cancelShowtime(showtimeId);
     }
 
-    private void validateShowtime(int movieId, int auditoriumId,
-            LocalDateTime startTime, int ignoredShowtimeId) throws SQLException {
-
+    private void validateShowtime(int movieId, int auditoriumId, LocalDateTime startTime, int ignoredShowtimeId) throws SQLException {
         if (startTime == null) {
             throw new IllegalArgumentException("Start time is required.");
         }
@@ -88,6 +86,10 @@ public class ShowtimeService {
         if (auditoriumId <= 0 || !showtimeDAO.auditoriumExists(auditoriumId)) {
             throw new IllegalArgumentException("Select an existing auditorium.");
         }
+        
+        if (!showtimeDAO.auditoriumHasSeats(auditoriumId)) {
+            throw new IllegalArgumentException("This auditorium has no seats set up yet.");
+        }
 
         LocalDateTime endTime =
                 startTime.plusMinutes(movie.getDurationMinutes());
@@ -95,17 +97,12 @@ public class ShowtimeService {
         if (hasScheduleConflict(
                 auditoriumId, startTime, endTime, ignoredShowtimeId)) {
 
-            throw new IllegalArgumentException(
-                    "This auditorium already has an overlapping active showtime.");
+            throw new IllegalArgumentException("This auditorium already has an overlapping active showtime.");
         }
     }
 
-    private boolean hasScheduleConflict(int auditoriumId,
-            LocalDateTime newStartTime, LocalDateTime newEndTime,
-            int ignoredShowtimeId) throws SQLException {
-
-        List<Showtime> existingShowtimes =
-                showtimeDAO.getActiveShowtimesByAuditorium(auditoriumId);
+    private boolean hasScheduleConflict(int auditoriumId, LocalDateTime newStartTime, LocalDateTime newEndTime, int ignoredShowtimeId) throws SQLException {
+        List<Showtime> existingShowtimes = showtimeDAO.getActiveShowtimesByAuditorium(auditoriumId);
 
         for (Showtime existing : existingShowtimes) {
             if (existing.getShowtimeId() == ignoredShowtimeId) {
@@ -118,17 +115,14 @@ public class ShowtimeService {
                 continue;
             }
 
-            LocalDateTime existingEndTime = existing.getStartTime()
-                    .plusMinutes(existingMovie.getDurationMinutes());
+            LocalDateTime existingEndTime = existing.getStartTime().plusMinutes(existingMovie.getDurationMinutes());
 
-            boolean overlaps = newStartTime.isBefore(existingEndTime)
-                    && newEndTime.isAfter(existing.getStartTime());
+            boolean overlaps = newStartTime.isBefore(existingEndTime) && newEndTime.isAfter(existing.getStartTime());
 
             if (overlaps) {
                 return true;
             }
         }
-
         return false;
     }
 }
