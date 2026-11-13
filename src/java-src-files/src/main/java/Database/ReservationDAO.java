@@ -82,10 +82,8 @@ public class ReservationDAO {
                     }
                 }
 
-                try (PreparedStatement reserveStatement =
-                             connection.prepareStatement(reserveSeat);
-                     PreparedStatement linkStatement =
-                             connection.prepareStatement(insertReservationSeat)) {
+                try (PreparedStatement reserveStatement = connection.prepareStatement(reserveSeat);
+                     PreparedStatement linkStatement = connection.prepareStatement(insertReservationSeat)) {
 
                     for (int showtimeSeatId : showtimeSeatIds) {
                         reserveStatement.setInt(1, showtimeSeatId);
@@ -114,15 +112,18 @@ public class ReservationDAO {
             throws SQLException {
         String sql = """
                 SELECT r.reservation_id, m.title AS movie_title, s.start_time,
-                       r.status, r.reservation_date,
-                       COUNT(rs.reservation_seat_id) AS seat_count
+                       s.auditorium_id, r.reservation_date,
+                       GROUP_CONCAT(CONCAT(se.row_label, se.seat_number)
+                                    ORDER BY se.row_label, se.seat_number
+                                    SEPARATOR ', ') AS seat_labels
                 FROM reservation r
                 JOIN showtime s ON r.showtime_id = s.showtime_id
                 JOIN movie m ON s.movie_id = m.movie_id
                 JOIN reservation_seat rs ON r.reservation_id = rs.reservation_id
+                JOIN showtime_seat ss ON rs.showtime_seat_id = ss.showtime_seat_id
+                JOIN seat se ON ss.seat_id = se.seat_id
                 WHERE r.user_id = ? AND r.status = 'ACTIVE'
-                GROUP BY r.reservation_id, m.title, s.start_time,
-                         r.status, r.reservation_date
+                GROUP BY r.reservation_id, m.title, s.start_time, s.auditorium_id, r.reservation_date
                 ORDER BY s.start_time
                 """;
 
@@ -139,9 +140,9 @@ public class ReservationDAO {
                             resultSet.getInt("reservation_id"),
                             resultSet.getString("movie_title"),
                             resultSet.getTimestamp("start_time").toLocalDateTime(),
-                            resultSet.getString("status"),
+                            resultSet.getInt("auditorium_id"),
                             resultSet.getTimestamp("reservation_date").toLocalDateTime(),
-                            resultSet.getInt("seat_count")
+                            resultSet.getString("seat_labels")
                     ));
                 }
             }

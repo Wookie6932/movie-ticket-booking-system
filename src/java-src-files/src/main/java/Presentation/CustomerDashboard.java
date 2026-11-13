@@ -58,10 +58,17 @@ public class CustomerDashboard extends JPanel {
     private final JTable showtimeTable = new JTable(showtimeTableModel);
     private final List<Showtime> currentShowtimes = new ArrayList<>();
 
+    private final CardLayout mainLayout = new CardLayout();
+    private final JPanel mainPanel = new JPanel(mainLayout);
+    private boolean showingReservations = false;
+ 
     private final CardLayout rightLayout = new CardLayout();
     private final JPanel rightPanel = new JPanel(rightLayout);
     private SeatMapPanel seatMapPanel;
     private ReservationSummaryPanel summaryPanel;
+    private ReservationsPanel ReservationsPanel;
+ 
+    private Showtime selectedShowtime;
 
     public CustomerDashboard(MainFrame mainFrame, User currentUser) {
         this.mainFrame = mainFrame;
@@ -99,8 +106,25 @@ public class CustomerDashboard extends JPanel {
         logoutPanel.add(logoutButton);
 
         topBar.add(logoutPanel, BorderLayout.EAST);
-        add(topBar, BorderLayout.NORTH);
 
+        JPanel navBar = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 8));
+        navBar.setBackground(Color.LIGHT_GRAY);
+ 
+        JButton browseButton = new JButton("Browse and Book");
+        JButton reservationsButton = new JButton("My Reservations");
+        browseButton.setFocusPainted(false);
+        reservationsButton.setFocusPainted(false);
+        browseButton.addActionListener(e -> showBrowse());
+        reservationsButton.addActionListener(e -> showReservations());
+        navBar.add(browseButton);
+        navBar.add(reservationsButton);
+ 
+        JPanel headerPanel = new JPanel(new BorderLayout());
+        headerPanel.add(topBar, BorderLayout.NORTH);
+        headerPanel.add(navBar, BorderLayout.SOUTH);
+        add(headerPanel, BorderLayout.NORTH);
+ 
+        
         movieList.setFont(new Font("Arial", Font.PLAIN, 18));
         movieList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 
@@ -149,13 +173,19 @@ public class CustomerDashboard extends JPanel {
         contentPanel.add(middlePanel, BorderLayout.WEST);
         contentPanel.add(rightPanel, BorderLayout.CENTER);
 
-        JPanel centerPanel = new JPanel(new BorderLayout(15, 15));
-        centerPanel.setBackground(Color.WHITE);
-        centerPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
-        centerPanel.add(movieScrollPane, BorderLayout.WEST);
-        centerPanel.add(contentPanel, BorderLayout.CENTER);
+        JPanel browsePanel = new JPanel(new BorderLayout(15, 15));
+        browsePanel.setBackground(Color.WHITE);
+        browsePanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+        browsePanel.add(movieScrollPane, BorderLayout.WEST);
+        browsePanel.add(contentPanel, BorderLayout.CENTER);
 
-        add(centerPanel, BorderLayout.CENTER);
+        ReservationsPanel = new ReservationsPanel(reservationService, currentUser);
+ 
+        mainPanel.add(browsePanel, "BROWSE");
+        mainPanel.add(ReservationsPanel, "RESERVATIONS");
+        mainLayout.show(mainPanel, "BROWSE");
+        
+        add(mainPanel, BorderLayout.CENTER);
 
         movieList.addListSelectionListener(e -> {
             if (!e.getValueIsAdjusting()) {
@@ -227,8 +257,32 @@ public class CustomerDashboard extends JPanel {
         }
     }
 
+    private void showBrowse() {
+        if (!showingReservations) {
+            return;
+        }
+ 
+        showingReservations = false;
+        mainLayout.show(mainPanel, "BROWSE");
+ 
+        if (selectedShowtime != null) {
+            showSeatMap(selectedShowtime);
+        }
+    }
+ 
+    private void showReservations() {
+        showingReservations = true;
+        ReservationsPanel.loadReservations();
+        mainLayout.show(mainPanel, "RESERVATIONS");
+    }
+
     public void showSeatMap(Showtime showtime) {
+        selectedShowtime = showtime;
         seatMapPanel.showSeatsFor(showtime);
+        rightLayout.show(rightPanel, "SEATS");
+    }
+    
+    public void backToSeatMap() {
         rightLayout.show(rightPanel, "SEATS");
     }
 

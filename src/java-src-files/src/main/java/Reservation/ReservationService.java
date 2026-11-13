@@ -1,6 +1,7 @@
 package Reservation;
  
 import java.sql.SQLException;
+import java.time.LocalDateTime;
 import java.util.List;
 
 import Database.ReservationDAO;
@@ -22,8 +23,7 @@ public class ReservationService {
         return reservationDAO.getSeatsForShowtime(showtimeId);
     }
 
-    public void createReservation(int userId, int showtimeId, List<Integer> showtimeSeatIds) 
-            throws SQLException, SeatUnavailableException {
+    public void createReservation(int userId, int showtimeId, List<Integer> showtimeSeatIds) throws SQLException, SeatUnavailableException {
         if (showtimeSeatIds == null || showtimeSeatIds.isEmpty()) {
             throw new IllegalArgumentException("Select at least one seat.");
         }
@@ -33,11 +33,14 @@ public class ReservationService {
         if (showtime == null) {
             throw new IllegalArgumentException("Select an existing showtime.");
         }
-
+ 
         if (!"ACTIVE".equals(showtime.getStatus())) {
-            throw new IllegalStateException("This showtime is no longer available for booking.");
+            throw new IllegalStateException("Showtime is unavailable.");
         }
-
+ 
+        if (!showtime.getStartTime().isAfter(LocalDateTime.now())) {
+            throw new IllegalStateException("Showtime has already started, booking is no longer available.");
+        }
         reservationDAO.createReservation(userId, showtimeId, showtimeSeatIds);
     }
 
@@ -52,7 +55,7 @@ public class ReservationService {
         boolean canceled = reservationDAO.cancelReservation(reservationId, userId);
 
         if (!canceled) {
-            throw new IllegalStateException("This reservation could not be canceled.");
+            throw new IllegalStateException("Reservation could not be canceled.");
         }
     }
 }

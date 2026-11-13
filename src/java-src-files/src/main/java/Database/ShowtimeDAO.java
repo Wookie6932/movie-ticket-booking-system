@@ -6,6 +6,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.sql.Statement;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -43,6 +44,7 @@ public class ShowtimeDAO {
                 FROM showtime s
                 JOIN movie m ON s.movie_id = m.movie_id
                 WHERE s.movie_id = ? AND s.status = 'ACTIVE'
+                AND s.start_time > ?
                 ORDER BY s.start_time
                 """;
  
@@ -52,9 +54,9 @@ public class ShowtimeDAO {
              PreparedStatement statement = connection.prepareStatement(sql)) {
  
             statement.setInt(1, movieId);
+            statement.setTimestamp(2, Timestamp.valueOf(LocalDateTime.now()));
  
             try (ResultSet resultSet = statement.executeQuery()) {
- 
                 while (resultSet.next()) {
                     showtimes.add(createShowtime(resultSet));
                 }
@@ -225,16 +227,59 @@ public class ShowtimeDAO {
     }
     
     public void cancelShowtime(int showtimeId) throws SQLException {
-        String sql = """
+        String cancelReservations = """
+                UPDATE reservation SET status = 'CANCELED'
+                WHERE showtime_id = ? AND status = 'ACTIVE'
+                """;
+ 
+        String removeSeatLinks = """
+                DELETE FROM reservation_seat
+                WHERE reservation_id IN (
+                    SELECT reservation_id FROM reservation
+                    WHERE showtime_id = ?
+                )
+                """;
+ 
+        String releaseSeats = """
+                UPDATE showtime_seat SET status = 'AVAILABLE'
+                WHERE showtime_id = ?
+                """;
+ 
+        String cancelShowtime = """
                 UPDATE showtime SET status = 'CANCELED'
                 WHERE showtime_id = ?
                 """;
  
-        try (Connection connection = DatabaseConnection.getConnection();
-             PreparedStatement statement = connection.prepareStatement(sql)) {
+        try (Connection connection = DatabaseConnection.getConnection()) {
+            connection.setAutoCommit(false);
  
-            statement.setInt(1, showtimeId);
-            statement.executeUpdate();
+            try {
+                try (PreparedStatement statement = connection.prepareStatement(cancelReservations)) {
+                    statement.setInt(1, showtimeId);
+                    statement.executeUpdate();
+                }
+ 
+                try (PreparedStatement statement = connection.prepareStatement(removeSeatLinks)) {
+                    statement.setInt(1, showtimeId);
+                    statement.executeUpdate();
+                }
+ 
+                try (PreparedStatement statement = connection.prepareStatement(releaseSeats)) {
+                    statement.setInt(1, showtimeId);
+                    statement.executeUpdate();
+                }
+ 
+                try (PreparedStatement statement = connection.prepareStatement(cancelShowtime)) {
+                    statement.setInt(1, showtimeId);
+                    statement.executeUpdate();
+                }
+ 
+                connection.commit();
+ 
+            } catch (SQLException e) {
+                connection.rollback();
+                throw e;
+            }
         }
     }
 

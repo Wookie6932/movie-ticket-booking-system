@@ -61,7 +61,7 @@ public class ReservationSummaryPanel extends JPanel {
         add(summaryArea, BorderLayout.CENTER);
  
         confirmButton.addActionListener(e -> confirmReservation());
-        backButton.addActionListener(e -> dashboard.showSeatMap(showtime));
+        backButton.addActionListener(e -> dashboard.backToSeatMap());
  
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
         buttonPanel.setBackground(Color.WHITE);

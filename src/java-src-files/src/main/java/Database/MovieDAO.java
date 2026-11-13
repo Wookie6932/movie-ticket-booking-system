@@ -12,7 +12,6 @@ import Movie.Movie;
 public class MovieDAO {
 
     public List<Movie> getAllMovies() throws SQLException {
-
         String sql = """
                 SELECT movie_id, title, description, duration_minutes, rating
                 FROM movie
@@ -69,7 +68,6 @@ public class MovieDAO {
 }
 
     public void addMovie(Movie movie) throws SQLException {
-
         String sql = """
                 INSERT INTO movie (title, description, duration_minutes, rating)
                 VALUES (?, ?, ?, ?)
@@ -88,7 +86,6 @@ public class MovieDAO {
     }
 
     public void updateMovie(Movie movie) throws SQLException {
-
         String sql = """
                 UPDATE movie
                 SET title = ?, description = ?, duration_minutes = ?, rating = ?
@@ -109,16 +106,37 @@ public class MovieDAO {
     }
 
     public void deleteMovie(int movieId) throws SQLException {
-
-        String sql = """
+        String deleteReservations = """
+                DELETE FROM reservation
+                WHERE showtime_id IN (
+                    SELECT showtime_id FROM showtime WHERE movie_id = ?
+                )
+                """;
+ 
+        String deleteMovie = """
                 DELETE FROM movie WHERE movie_id = ?
                 """;
-
-        try (Connection connection = DatabaseConnection.getConnection();
-             PreparedStatement statement = connection.prepareStatement(sql)) {
-
-            statement.setInt(1, movieId);
-            statement.executeUpdate();
-        }
+ 
+        try (Connection connection = DatabaseConnection.getConnection()) {
+            connection.setAutoCommit(false);
+ 
+            try {
+                try (PreparedStatement statement = connection.prepareStatement(deleteReservations)) {
+                    statement.setInt(1, movieId);
+                    statement.executeUpdate();
+                }
+ 
+                try (PreparedStatement statement = connection.prepareStatement(deleteMovie)) {
+                    statement.setInt(1, movieId);
+                    statement.executeUpdate();
+                }
+ 
+                connection.commit();
+ 
+            } catch (SQLException e) {
+                connection.rollback();
+                throw e;
+            }
+        }    
     }
 }

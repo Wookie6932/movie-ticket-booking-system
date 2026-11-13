@@ -26,35 +26,33 @@ public class ShowtimeService {
     }
  
     public void addShowtime(int movieId, int auditoriumId, LocalDateTime startTime) throws SQLException {
-            validateShowtime(movieId, auditoriumId, startTime, -1);
-
+        validateShowtime(movieId, auditoriumId, startTime, -1);
+ 
         Showtime showtime = new Showtime(0, movieId, auditoriumId, startTime, "ACTIVE", null);
  
         showtimeDAO.addShowtime(showtime);
     }
  
-    public void updateShowtime(int showtimeId, int movieId, int auditoriumId,
-            LocalDateTime startTime) throws SQLException {
-
+    public void updateShowtime(int showtimeId, int movieId, int auditoriumId, LocalDateTime startTime) throws SQLException {
         Showtime existingShowtime = showtimeDAO.getShowtimeById(showtimeId);
-
+ 
         if (existingShowtime == null) {
             throw new IllegalArgumentException("Select an existing showtime.");
         }
-
+ 
         if ("CANCELED".equals(existingShowtime.getStatus())) {
             throw new IllegalStateException("Canceled showtimes cannot be edited.");
         }
-        
+ 
         if (existingShowtime.getAuditoriumId() != auditoriumId) {
-            throw new IllegalStateException("Auditorium cannot be changed after a showtime is created. " 
+            throw new IllegalStateException("Auditorium cannot be changed after a showtime is created. "
                     + "Cancel the showtime and create a new one instead.");
         }
-
+ 
         validateShowtime(movieId, auditoriumId, startTime, showtimeId);
-
+ 
         Showtime showtime = new Showtime(showtimeId, movieId, auditoriumId, startTime, "ACTIVE", null);
-
+ 
         showtimeDAO.updateShowtime(showtime);
     }
  
@@ -66,7 +64,7 @@ public class ShowtimeService {
         }
 
         if ("CANCELED".equals(showtime.getStatus())) {
-            throw new IllegalStateException("This showtime is already canceled.");
+            throw new IllegalStateException("Showtime is already canceled.");
         }
 
         showtimeDAO.cancelShowtime(showtimeId);
@@ -76,28 +74,29 @@ public class ShowtimeService {
         if (startTime == null) {
             throw new IllegalArgumentException("Start time is required.");
         }
-
+ 
+        if (!startTime.isAfter(LocalDateTime.now())) {
+            throw new IllegalArgumentException("Start times must be in the future.");
+        }
+ 
         Movie movie = movieDAO.getMovieById(movieId);
-
+ 
         if (movie == null) {
             throw new IllegalArgumentException("Select an existing movie.");
         }
-
+ 
         if (auditoriumId <= 0 || !showtimeDAO.auditoriumExists(auditoriumId)) {
             throw new IllegalArgumentException("Select an existing auditorium.");
         }
-        
+ 
         if (!showtimeDAO.auditoriumHasSeats(auditoriumId)) {
-            throw new IllegalArgumentException("This auditorium has no seats set up yet.");
+            throw new IllegalArgumentException("Auditorium has no seats set up yet.");
         }
-
-        LocalDateTime endTime =
-                startTime.plusMinutes(movie.getDurationMinutes());
-
-        if (hasScheduleConflict(
-                auditoriumId, startTime, endTime, ignoredShowtimeId)) {
-
-            throw new IllegalArgumentException("This auditorium already has an overlapping active showtime.");
+ 
+        LocalDateTime endTime = startTime.plusMinutes(movie.getDurationMinutes());
+ 
+        if (hasScheduleConflict(auditoriumId, startTime, endTime, ignoredShowtimeId)) {
+            throw new IllegalArgumentException("Auditorium is already reserved for this time.");
         }
     }
 

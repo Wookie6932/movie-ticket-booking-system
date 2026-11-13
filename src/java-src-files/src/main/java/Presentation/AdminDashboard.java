@@ -317,8 +317,10 @@ public class AdminDashboard extends JPanel {
         }
  
         int confirm = JOptionPane.showConfirmDialog(this,
-                "Delete \"" + selected.getTitle() + "\"? This cannot be undone.",
-                "Confirm Delete", JOptionPane.YES_NO_OPTION);
+                "Delete \"" + selected.getTitle() + "\"? This action cannot be undone.\n\n"
+                + "All of its showtimes and reservations, including active "
+                + "customer bookings will be deleted.", "Confirm Delete", JOptionPane.YES_NO_OPTION,
+                JOptionPane.WARNING_MESSAGE);
  
         if (confirm != JOptionPane.YES_OPTION) return;
  
@@ -339,8 +341,11 @@ public class AdminDashboard extends JPanel {
  
         int confirm = JOptionPane.showConfirmDialog(this,
                 "Cancel the showtime for \"" + selected.getMovieTitle()
-                + "\" on " + selected.getStartTime().format(FORMATTER) + "?",
-                "Confirm Cancel", JOptionPane.YES_NO_OPTION);
+                + "\" on " + selected.getStartTime().format(FORMATTER) + "?\n\n"
+                + "Active reservations for this showtime will be "
+                + "canceled and their seats released.",
+                "Confirm Cancel", JOptionPane.YES_NO_OPTION,
+                JOptionPane.WARNING_MESSAGE);
  
         if (confirm != JOptionPane.YES_OPTION) return;
  
@@ -353,8 +358,7 @@ public class AdminDashboard extends JPanel {
 
         } catch (Exception e) {
             e.printStackTrace();
-            JOptionPane.showMessageDialog(
-                    this, "Unable to cancel showtime. Please try again.");
+            JOptionPane.showMessageDialog(this, "Unable to cancel showtime. Please try again.");
         }
     }
  
